@@ -74,6 +74,13 @@ int main(void)
                 lcd_puts( min_sec_message );
             } /* Wait until the signal is caught */
             sensor_hit = 0;
+            
+            /* Disable the sensor */
+            if ( (track_order[i] == 0) || (track_order[i] == 1) ) {
+                PORTB &= ~(1 << track_order[i]);
+            } else {
+                PORTC &= ~(1 << (track_order[i]-2) );
+            }
         }
         /* TODO: Logic */
         
