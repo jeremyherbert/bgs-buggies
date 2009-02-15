@@ -2,7 +2,7 @@
 #include "timer.h"
 
 void timer_init() {
-    OCR1A = 0x3D09; /* Output compare at exactly 1 second */
+    OCR1A = 16000000/1024; /* Output compare at exactly 1 second */
     TIMSK = (1 << OCIE1A); /* Enable compare match interrupt */
 }
 

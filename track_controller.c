@@ -1,6 +1,10 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <stdio.h>
+
+#define F_CPU 16000000
+#include <util/delay.h>
+
 #include "lcd.h"
 #include "uart.h"
 #include "pwm.h"
@@ -91,7 +95,7 @@ int main(void)
         pwm_stop();
         current_state = STATE_FINISHED;
         
-        lcd_gotoxy(0,2)
+        lcd_gotoxy(0,2);
         lcd_puts("Finished - Press Go!");
         while (PIND & BUTTON_1); /* While the button is not pressed */
 	}
@@ -118,6 +122,10 @@ ISR(TIMER1_COMPA_vect) { /* Every second */
         seconds = 0;
         minutes++;
     }
+	cli();
+	TCNT1 = 0;
+	sei();
+
 }
 
 ISR(USART_RXC_vect) { /* On UART receive */
