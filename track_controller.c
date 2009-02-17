@@ -24,7 +24,8 @@ volatile char sensor_hit = 0;
 
 volatile char seconds = 0;
 volatile char minutes = 0;
-char min_sec_message[12] = "00:00      "; /* Needs the 6th for \0 terminator */
+char min_sec_message[12] = "00:00      "; /* Needs the 12th for \0 terminator */
+char time_output[20]; /* to send the time down uart */
 
 /* these will be calculated later */
 int timer_value = 0;
@@ -44,6 +45,8 @@ int main(void)
     timer_init(); /* for counting the seconds */
     
     GICR = (1 << INT2); /* Enable interrupt 2 */
+
+	uart_tx_string("Hello!");
 	
 	sei(); /* Enable interrupts */
 	
@@ -69,28 +72,38 @@ int main(void)
             if ( (track_order[i] == 0) || (track_order[i] == 1) ) {
                 PORTB |= (1 << track_order[i]);
             } else {
-                PORTC |= (1 << (track_order[i]-2) );
+                PORTA |= (1 << (track_order[i]-2) );
             }
             
             while (!sensor_hit){
                 lcd_gotoxy(0,1);
                 sprintf(min_sec_message, "%i:%i  ", minutes, seconds);
                 lcd_puts( min_sec_message );
-            } /* Wait until the signal is caught */
+            } /* Wait until the INT2 signal is caught */
             sensor_hit = 0;
             
             /* Disable the sensor */
             if ( (track_order[i] == 0) || (track_order[i] == 1) ) {
                 PORTB &= ~(1 << track_order[i]);
             } else {
-                PORTC &= ~(1 << (track_order[i]-2) );
+                PORTA &= ~(1 << (track_order[i]-2) );
             }
         }
         /* TODO: Logic */
+
+		/* We need to disable the interrupts before a 16bit register read or bad things can happen */
+		cli(); 
+		timer_value = TCNT1;
+		sei();
         
+		sprintf(time_output, "Time: %i:%i:%i\n", minutes, seconds, timer_value);
+		uart_tx_string(time_output);
+
+		timer_value = 0;
         seconds = 0;
         minutes = 0;
-        
+		sprintf(time_output, " ");
+		        
         timer_stop();
         pwm_stop();
         current_state = STATE_FINISHED;
@@ -132,12 +145,13 @@ ISR(USART_RXC_vect) { /* On UART receive */
     char rx_byte = UDR; /* Get the byte out of the register */
     switch (rx_byte){
         
-        case 'T': /* This is the test case; if the computer sends this it is trying to check if the controller is alive */
-            uart_tx('t'); /* Send back 't' to show that it is still alive */
+        case 'X': /* This is the test case; if the computer sends this it is trying to check if the controller is alive */
+            uart_tx('x'); /* Send back 't' to show that it is still alive */
             break; 
     }
 }
 
 ISR(INT2_vect) { /* On sensor hit */ 
     sensor_hit = 1; /* Let the other functions know */
+    _delay_us(10); /* poor effort at debouncing, but it works */
 }
